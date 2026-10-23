@@ -1,0 +1,79 @@
+.gitignore
+  s_a69fcb4149c1ee::t_076b5f82e43b8e 1-24
+.oxlintrc.json
+  s_a69fcb4149c1ee::t_d01f91b1cb3fbe 1-8
+README.md
+  s_a69fcb4149c1ee::t_70afe9e27c882e 1-32
+package-lock.json
+  s_a69fcb4149c1ee::t_1fa17d2f0be8f7 1-1295
+package.json
+  s_a69fcb4149c1ee::t_d7c25d30e7b88c 1-25
+public/favicon.svg
+  s_a69fcb4149c1ee::t_b82511137a1a57 1
+public/icons.svg
+  s_a69fcb4149c1ee::t_77b4e12d8d84e9 1-24
+src/App.css
+  s_a69fcb4149c1ee::t_85d199281f8f84 1-184
+src/assets/react.svg
+  s_a69fcb4149c1ee::t_dda4ba8e8112ca 1
+src/assets/vite.svg
+  s_a69fcb4149c1ee::t_10196fa4cf251f 1
+src/main.tsx
+  s_a69fcb4149c1ee::t_8d3d5c8e9f9a9a 1-10
+tsconfig.json
+  s_a69fcb4149c1ee::t_7433e719dcf0e9 1-7
+tsconfig.node.json
+  s_a69fcb4149c1ee::t_3eaa1b61839b07 1-23
+index.html
+  s_a69fcb4149c1ee::t_e09b992ea89152 1-16
+scripts/build_pack.py
+  s_a69fcb4149c1ee::t_93c6b5fc2d0191 1-405
+src/App.tsx
+  s_a69fcb4149c1ee::t_101d12bcbfe730 1-14
+src/brainArt.tsx
+  s_a69fcb4149c1ee::t_10a0de7df40ef9 1-86
+src/buzzerArt.tsx
+  s_a69fcb4149c1ee::t_0aab5220113a00 1-16
+src/clock.tsx
+  s_a69fcb4149c1ee::t_0a8d08750a3edc 1-29
+src/data/pack.json
+  s_a69fcb4149c1ee::t_6ed29b290d0f2b 1-3433
+src/finalArt.tsx
+  s_a69fcb4149c1ee::t_6c47807ebdfeca 1-57
+src/guessArt.tsx
+  s_a69fcb4149c1ee::t_031177eda60400 1-70
+src/host.tsx
+  s_a69fcb4149c1ee::t_ea56fef6683e1e 1-1449
+src/index.css
+  s_a69fcb4149c1ee::t_3f7704b34f11af 1-1194
+src/knowArt.tsx
+  s_a69fcb4149c1ee::t_2265ce0441ad13 1-107
+src/pack.ts
+  s_a69fcb4149c1ee::t_c11f38ca3a81be 1-63
+src/screen.tsx
+  s_a69fcb4149c1ee::t_ff032d1c025a20 1-449
+src/tallyArt.tsx
+  s_a69fcb4149c1ee::t_d58fb6a2584bd6 1-14
+src/winnerArt.tsx
+  s_a69fcb4149c1ee::t_9cc5306a7da093 1-65
+tsconfig.app.json
+  s_a69fcb4149c1ee::t_f030536a5be4ba 1-27
+vite.config.ts
+  s_a69fcb4149c1ee::t_9d5693da675841 1-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "00ecb82b3cbe08d1891bcf7d6c6636a21135b419",
+  "prompts": {},
+  "sessions": {
+    "s_a69fcb4149c1ee": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "490515b1-fc87-4ffa-b8c3-3b2d0886f99d",
+        "model": "default"
+      },
+      "human_author": "Nely <hartenyan.nely1498@gmail.com>"
+    }
+  }
+}
