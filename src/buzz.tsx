@@ -22,12 +22,20 @@ export default function Buzz() {
   useEffect(() => {
     if (!room) return
     setRoom(room)
-    let fail = window.setTimeout(() => setOnline(false), 3500)
-    const stop = listenArena(room, (event) => {
+    setOnline(false)
+    let fail = window.setTimeout(() => setOnline(false), 5000)
+    const markOnline = () => {
       setOnline(true)
       window.clearTimeout(fail)
-      if (event.type === 'state') setSnap(event.state)
-    })
+    }
+    const stop = listenArena(
+      room,
+      (event) => {
+        markOnline()
+        if (event.type === 'state') setSnap(event.state)
+      },
+      markOnline,
+    )
     return () => {
       window.clearTimeout(fail)
       stop()
@@ -48,8 +56,8 @@ export default function Buzz() {
 
   let status = 'Սպասում ենք հարցին…'
   if (!room) status = 'Մուտքագրիր խաղի կոդը։'
-  else if (!online) status = 'Կապ չկա։ Ստուգիր կոդը և ինտերնետը։'
-  else if (!snap.ready) status = 'Խաղը դեռ չի սկսվել։'
+  else if (!online) status = 'Միանում ենք… Ստուգիր ինտերնետը։'
+  else if (!snap.ready) status = 'Սպասում ենք խաղի մեկնարկին։ Բացիր host էջը։'
   else if (!team) status = 'Ընտրիր քո թիմը։'
   else if (locked) status = 'Այս հարցի համար այլևս չես կարող սեղմել։'
   else if (mine) status = 'Դու ես առաջինը։ Պատասխանիր։'

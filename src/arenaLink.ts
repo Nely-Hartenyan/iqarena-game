@@ -12,6 +12,7 @@ export type ArenaSnap = {
 export type ArenaIncoming =
   | { type: 'state'; state: ArenaSnap }
   | { type: 'buzz'; teamId: string }
+  | { type: 'hello' }
 
 const ROOM_KEY = 'iq-arena-room'
 const empty: ArenaSnap = {
@@ -73,9 +74,19 @@ function topicFor(room: string) {
 
 async function detectTransport() {
   if (transport) return transport
+  if (import.meta.env.PROD) {
+    transport = 'cloud'
+    return transport
+  }
   try {
     const response = await fetch('/api/arena/info', { signal: AbortSignal.timeout(900) })
-    transport = response.ok ? 'local' : 'cloud'
+    const type = response.headers.get('content-type') ?? ''
+    if (!response.ok || !type.includes('application/json')) {
+      transport = 'cloud'
+      return transport
+    }
+    const info = (await response.json()) as { buzzUrls?: unknown }
+    transport = Array.isArray(info.buzzUrls) ? 'local' : 'cloud'
   } catch {
     transport = 'cloud'
   }
@@ -128,44 +139,61 @@ export async function sendBuzz(room: string, teamId: string) {
   await postCloud(room, body)
 }
 
-function listenLocal(onEvent: (event: ArenaIncoming) => void) {
+function listenLocal(onEvent: (event: ArenaIncoming) => void, onReady: () => void) {
   const source = new EventSource('/api/arena/events')
+  source.onopen = () => onReady()
   source.onmessage = (message) => {
     try {
       const data = JSON.parse(message.data) as ArenaIncoming
-      if (data?.type === 'state' || data?.type === 'buzz') onEvent(data)
+      if (data?.type === 'state' || data?.type === 'buzz' || data?.type === 'hello') onEvent(data)
     } catch {
       /* ignore */
     }
   }
+  source.onerror = () => {
+    /* browser will retry; buzz page timeout handles hard fail */
+  }
   return () => source.close()
 }
 
-function listenCloud(room: string, onEvent: (event: ArenaIncoming) => void) {
+function listenCloud(room: string, onEvent: (event: ArenaIncoming) => void, onReady: () => void) {
   const source = new EventSource(`https://ntfy.sh/${topicFor(room)}/sse`)
+  source.onopen = () => onReady()
   const onMessage = (message: MessageEvent<string>) => {
     try {
-      const outer = JSON.parse(message.data) as { message?: string }
+      const outer = JSON.parse(message.data) as { message?: string; event?: string }
+      if (outer.event === 'open') {
+        onReady()
+        return
+      }
       if (!outer.message) return
       const data = JSON.parse(outer.message) as ArenaIncoming
-      if (data?.type === 'state' || data?.type === 'buzz') onEvent(data)
+      if (data?.type === 'state' || data?.type === 'buzz' || data?.type === 'hello') onEvent(data)
     } catch {
       /* ignore */
     }
   }
   source.addEventListener('message', onMessage)
+  source.addEventListener('open', () => onReady())
   return () => {
     source.removeEventListener('message', onMessage)
     source.close()
   }
 }
 
-export function listenArena(room: string, onEvent: (event: ArenaIncoming) => void) {
+export function listenArena(
+  room: string,
+  onEvent: (event: ArenaIncoming) => void,
+  onReady?: () => void,
+) {
   let stop = () => {}
   let active = true
+  const ready = () => {
+    if (active) onReady?.()
+  }
   void detectTransport().then((mode) => {
     if (!active) return
-    stop = mode === 'local' ? listenLocal(onEvent) : listenCloud(room, onEvent)
+    stop = mode === 'local' ? listenLocal(onEvent, ready) : listenCloud(room, onEvent, ready)
   })
   return () => {
     active = false
@@ -179,7 +207,8 @@ export async function arenaShareUrls(room: string) {
   if (mode !== 'local') return { room, buzzUrls: [main], mode }
   try {
     const response = await fetch('/api/arena/info')
-    if (!response.ok) return { room, buzzUrls: [main], mode }
+    const type = response.headers.get('content-type') ?? ''
+    if (!response.ok || !type.includes('application/json')) return { room, buzzUrls: [main], mode }
     const info = (await response.json()) as { buzzUrls?: string[] }
     const lan = (info.buzzUrls ?? []).flatMap((url) => {
       try {
