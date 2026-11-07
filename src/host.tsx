@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useReducer } from 'react'
+import { useEffect, useMemo, useReducer, useState } from 'react'
+import { arenaShareUrls, buzzUrl, ensureRoom, listenArena, publishArena, screenUrl } from './arenaLink'
 import { Clock, leftSeconds, useNow } from './clock'
 import { pack, type BrainTask, type FinalSet } from './pack'
 import { publish, ShuffleLineup, type ScreenView } from './screen'
@@ -43,17 +44,17 @@ type State = {
 }
 
 const emptyBuzz = (): Buzz => ({ armed: false, activeId: null, deadline: null, locked: [] })
-const GAMES = [1, 2, 3, 4, 5]
+const GAMES = [1, 2]
 const STARTS_KEY = 'iq-arena-know-starts'
-const DEFAULT_STARTS = [0, 9, 19, 29, 39]
+const DEFAULT_STARTS = [0, 9]
 const BUZZER_PER_GAME = 2
 
 function loadStarts(): number[] {
   try {
     const raw = localStorage.getItem(STARTS_KEY)
     const parsed = raw ? JSON.parse(raw) as unknown : null
-    if (Array.isArray(parsed) && parsed.length === GAMES.length) {
-      const saved = parsed.map((value) => Math.max(0, Math.floor(Number(value)) || 0))
+    if (Array.isArray(parsed) && parsed.length >= GAMES.length) {
+      const saved = parsed.slice(0, GAMES.length).map((value) => Math.max(0, Math.floor(Number(value)) || 0))
       if (saved.every((value) => value === 0)) return DEFAULT_STARTS
       return saved
     }
@@ -121,6 +122,7 @@ type Action =
   | { type: 'listen'; index: number | null }
   | { type: 'bind'; index: number; key: string }
   | { type: 'score'; id: string; delta: number }
+  | { type: 'set-score'; id: string; score: number }
   | { type: 'round'; round: RoundId }
   | { type: 'know-show' }
   | { type: 'know-team'; id: string }
@@ -332,8 +334,7 @@ function lockActive(state: State, delta: number): State {
   const locked = buzz.locked.includes(buzz.activeId) ? buzz.locked : [...buzz.locked, buzz.activeId]
   const teams = delta ? add(state.teams, buzz.activeId, delta) : state.teams
   const armed = locked.length < teams.length
-  const deadline = state.round === 'guess' && armed ? Date.now() + 5000 : null
-  return withBuzz({ ...state, teams }, { armed, activeId: null, deadline, locked })
+  return withBuzz({ ...state, teams }, { armed, activeId: null, deadline: null, locked })
 }
 
 function shuffleTeams(teams: Team[]) {
@@ -406,6 +407,13 @@ function reducer(state: State, action: Action): State {
     }
     case 'score':
       return { ...state, teams: add(state.teams, action.id, action.delta) }
+    case 'set-score':
+      return {
+        ...state,
+        teams: state.teams.map((team) => (
+          team.id === action.id ? { ...team, score: Math.max(0, Math.floor(action.score) || 0) } : team
+        )),
+      }
     case 'round':
       return withStageBase({ ...state, round: action.round, reveal: null }, action.round)
     case 'know-show':
@@ -572,7 +580,7 @@ function reducer(state: State, action: Action): State {
     case 'buzz': {
       const buzz = activeBuzz(state)
       if (!buzz || buzz.activeId || buzz.locked.includes(action.id)) return state
-      return withBuzz(state, { ...buzz, armed: false, activeId: action.id, deadline: Date.now() + 5000 })
+      return withBuzz(state, { ...buzz, armed: false, activeId: action.id, deadline: null })
     }
     case 'buzz-timeout': {
       const buzz = activeBuzz(state)
@@ -669,11 +677,30 @@ export default function Host() {
   const [state, dispatch] = useReducer(reducer, null, loadState)
   const ready = state.namesSaved
 
+  const room = useMemo(() => ensureRoom(), [])
+
   useEffect(() => {
     sessionStorage.setItem(HOST_KEY, JSON.stringify(state))
     localStorage.setItem(STARTS_KEY, JSON.stringify(state.knowStarts))
     publish(toScreen(state))
-  }, [state])
+    const buzz = activeBuzz(state)
+    void publishArena(room, {
+      teams: state.teams.filter((team) => team.name.trim()).map((team) => ({ id: team.id, name: team.name.trim() })),
+      armed: Boolean(buzz?.armed && !buzz.activeId),
+      activeId: buzz?.activeId ?? null,
+      locked: buzz?.locked ?? [],
+      round: state.round,
+      ready: state.namesSaved,
+    })
+  }, [state, room])
+
+  useEffect(() => {
+    return listenArena(room, (event) => {
+      if (event.type !== 'buzz') return
+      dispatch({ type: 'buzz', id: event.teamId })
+      beep()
+    })
+  }, [room])
 
   useEffect(() => {
     if (!state.shuffling) return
@@ -714,9 +741,19 @@ export default function Host() {
   }, [state.listening, state.teams])
 
   const openScreen = () => {
-    const url = `${location.origin}${location.pathname}#screen`
-    window.open(url, 'iq-arena-screen')
+    window.open(screenUrl(), 'iq-arena-screen')
     window.focus()
+  }
+
+  const shareBuzz = async () => {
+    const info = await arenaShareUrls(room)
+    const url = info.buzzUrls[0] ?? buzzUrl(room)
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      /* clipboard may be blocked */
+    }
+    window.alert(`Թիմերի buzzer\nԿոդ՝ ${room}\n${info.buzzUrls.join('\n') || url}\n\nՀղումը պատճենված է։`)
   }
 
   return (
@@ -728,9 +765,16 @@ export default function Host() {
         </div>
         <div className="bar-actions">
           <button type="button" onClick={openScreen}>Բացել էկրանը</button>
+          <button type="button" className="ghost" onClick={() => void shareBuzz()}>Պատճենել buzzer</button>
           <button type="button" className="ghost" onClick={() => { if (confirm('Սկսե՞լ խաղը նորից')) dispatch({ type: 'reset' }) }}>Նոր խաղ</button>
         </div>
       </header>
+      <div className="buzz-share">
+        <span>Թիմերի buzzer</span>
+        <strong>{room}</strong>
+        <code>{buzzUrl(room).replace(/^https?:\/\//, '')}</code>
+        <button type="button" className="ghost" onClick={() => void shareBuzz()}>Պատճենել</button>
+      </div>
 
       {!ready && <Setup state={state} dispatch={dispatch} />}
 
@@ -997,22 +1041,12 @@ function Guess({ state, dispatch }: { state: State; dispatch: (action: Action) =
           <h2>{category ? GUESS_QUESTION[category.id] : ''}</h2>
           {current.emoji && <p className="emoji">{current.emoji}</p>}
           {current.image && <img src={current.image} alt="" />}
-          <Clock endsAt={state.guess.buzz.deadline} big />
-          <p className="hint">{active ? `${active.name} · 5 վայրկյան պատասխանի համար` : '5 վայրկյան՝ կոճակը սեղմելու համար'}</p>
-          <div className="choice-row">
-            {state.teams.map((team) => (
-              <button
-                type="button"
-                key={team.id}
-                disabled={state.guess.buzz.locked.includes(team.id) || Boolean(state.guess.buzz.activeId)}
-                className={active?.id === team.id ? 'on' : ''}
-                onClick={() => dispatch({ type: 'buzz', id: team.id })}
-              >
-                {team.name}
-              </button>
-            ))}
-          </div>
-          {active && <p className="who">{active.name}</p>}
+          {!active && state.guess.buzz.deadline && (
+            <>
+              <Clock endsAt={state.guess.buzz.deadline} big />
+              <p className="hint">5 վայրկյան</p>
+            </>
+          )}
           <p className="hint">Ո՞վ պատասխանեց ճիշտ</p>
           <div className="choice-row">
             {state.teams.map((team) => (
@@ -1084,7 +1118,7 @@ function BrainPlay({ task, title, answerImage, state, dispatch }: { task: BrainT
   return (
     <div className="play">
       <p className="kicker">{title} · {task.seconds} վայրկյան</p>
-      <Clock endsAt={state.brain.endsAt} big />
+      {!shown && <Clock endsAt={state.brain.endsAt} big />}
       <h2>{task.prompt}</h2>
       {shown && <p className="hint">Պատասխանը դահլիճում է</p>}
       {image && <img src={image} alt="" />}
@@ -1152,14 +1186,9 @@ function Buzzer({ state, dispatch }: { state: State; dispatch: (action: Action) 
 
 function Final({ state, dispatch }: { state: State; dispatch: (action: Action) => void }) {
   if (state.final.applied) {
-    const shown = state.reveal === 'winner'
     return (
       <section className="panel">
-        <div className="play">
-          <h2>Փուլերն ավարտված են</h2>
-          <p className="hint">{shown ? 'Հաղթողը էկրանին է։' : 'Հաշվում ենք միավորները։'}</p>
-          <button type="button" className="on" onClick={() => dispatch({ type: 'reveal-winner' })}>Ցույց տալ հաղթողին</button>
-        </div>
+        <FinalAudit state={state} dispatch={dispatch} />
       </section>
     )
   }
@@ -1168,6 +1197,77 @@ function Final({ state, dispatch }: { state: State; dispatch: (action: Action) =
     <section className="panel">
       <FinalPlay set={set} state={state} dispatch={dispatch} />
     </section>
+  )
+}
+
+function FinalAudit({ state, dispatch }: { state: State; dispatch: (action: Action) => void }) {
+  const [paper, setPaper] = useState<Record<string, string>>({})
+  const shown = state.reveal === 'winner'
+  const mismatch = state.teams.some((team) => {
+    const raw = paper[team.id]
+    if (raw == null || raw.trim() === '') return false
+    const value = Number(raw)
+    return Number.isFinite(value) && value !== team.score
+  })
+
+  return (
+    <div className="play">
+      <h2>Փուլերն ավարտված են</h2>
+      <p className="hint">
+        {shown
+          ? 'Հաղթողը էկրանին է։'
+          : 'Էկրանին հաշվարկն է։ Համեմատիր խաղի միավորները օգնականների թղթի հետ։ Եթե տարբերություն կա՝ ուղղիր խաղի թիվը։'}
+      </p>
+      <div className="score-audit">
+        <div className="score-audit-head">
+          <span>Թիմ</span>
+          <span>Խաղ</span>
+          <span>Օգնականներ</span>
+        </div>
+        {state.teams.map((team) => {
+          const raw = paper[team.id] ?? ''
+          const value = raw.trim() === '' ? null : Number(raw)
+          const off = value != null && Number.isFinite(value) && value !== team.score
+          return (
+            <div key={team.id} className={off ? 'score-audit-row off' : 'score-audit-row'}>
+              <span>{team.name.trim() || '—'}</span>
+              <div className="score-audit-game">
+                <button type="button" onClick={() => dispatch({ type: 'score', id: team.id, delta: -1 })}>−</button>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={team.score}
+                  aria-label={`${team.name} խաղի միավոր`}
+                  onChange={(event) => dispatch({ type: 'set-score', id: team.id, score: Number(event.target.value) })}
+                />
+                <button type="button" onClick={() => dispatch({ type: 'score', id: team.id, delta: 1 })}>+</button>
+              </div>
+              <div className="score-audit-paper">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="—"
+                  value={raw}
+                  aria-label={`${team.name} օգնականների միավոր`}
+                  onChange={(event) => setPaper((prev) => ({ ...prev, [team.id]: event.target.value }))}
+                />
+                {off && (
+                  <button
+                    type="button"
+                    className="ghost"
+                    onClick={() => dispatch({ type: 'set-score', id: team.id, score: value ?? team.score })}
+                  >
+                    Վերցնել օգնականներից
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      {mismatch && !shown && <p className="hint warn">Տարբերություն կա։ Ուղղիր խաղի միավորները, հետո ցույց տուր հաղթողին։</p>}
+      <button type="button" className="on" onClick={() => dispatch({ type: 'reveal-winner' })}>Ցույց տալ հաղթողին</button>
+    </div>
   )
 }
 
@@ -1347,7 +1447,7 @@ function toScreen(state: State): ScreenView {
       points: current.points,
       armed: !state.guess.buzz.activeId && state.guess.buzz.locked.length < state.teams.length,
       buzzName: buzzerName,
-      buzzEndsAt: state.guess.buzz.deadline,
+      buzzEndsAt: state.guess.buzz.activeId ? null : state.guess.buzz.deadline,
     }
   }
   if (state.round === 'brain') {
@@ -1385,7 +1485,7 @@ function toScreen(state: State): ScreenView {
       image: task.image ?? null,
       answerImage: state.brain.answerOn ? slice?.answerImage ?? null : null,
       answer: state.brain.answerOn ? (slice?.answerImage ? '' : task.answer) : null,
-      timerEndsAt: state.brain.endsAt,
+      timerEndsAt: state.brain.answerOn ? null : state.brain.endsAt,
     }
   }
   if (state.round === 'buzzer') {

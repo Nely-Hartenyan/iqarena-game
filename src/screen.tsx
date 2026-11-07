@@ -45,10 +45,9 @@ const CHANNEL = 'iq-arena-game'
 const STORAGE = 'iq-arena-screen'
 
 const facts = [
-  ['16', 'մասնակից թիմ'],
+  ['8', 'մասնակից թիմ'],
   ['4', 'թիմ յուրաքանչյուր խաղում'],
   ['5', 'մրցութային փուլ'],
-  ['1', 'եզրափակչի հաղթող'],
 ]
 
 const stages = ['Know It All', 'Guess It', 'Brain Battle', 'Buzzer Rush', 'Final Code']
@@ -176,7 +175,7 @@ function BrainQuestion({ view }: { view: ScreenView }) {
   const image = view.answer === '' && view.answerImage ? view.answerImage : view.image
   return (
     <div className="prompt brain-question">
-      <Clock endsAt={view.timerEndsAt} big />
+      {!shown && <Clock endsAt={view.timerEndsAt} big />}
       {view.title && <p className="kicker">{view.title}</p>}
       {view.text && <h1>{view.text}</h1>}
       {image && <img src={image} alt="" />}
@@ -285,7 +284,7 @@ export function Screen() {
         <p className="round-name">{view.tally || view.winner?.length ? '' : view.round}</p>
         <span className="screen-balance" />
         <div className="score-line">
-          {(view.kind === 'guess' ? view.buzzEndsAt : view.timerEndsAt) && view.kind !== 'know' && view.kind !== 'brain' && !finalHold && (
+          {!view.buzzName && (view.kind === 'guess' ? view.buzzEndsAt : view.timerEndsAt) && view.kind !== 'know' && view.kind !== 'brain' && !finalHold && (
             <div className="screen-clock">
               <Clock endsAt={view.kind === 'guess' ? view.buzzEndsAt : view.timerEndsAt} big />
             </div>
@@ -295,8 +294,8 @@ export function Screen() {
 
       {view.buzzName && (
         <div className="buzz-banner">
+          <small>Առաջինը</small>
           <span>{view.buzzName}</span>
-          <Clock endsAt={view.buzzEndsAt} big />
         </div>
       )}
 
