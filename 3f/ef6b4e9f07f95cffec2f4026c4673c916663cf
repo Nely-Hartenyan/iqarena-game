@@ -1,0 +1,14 @@
+src/data/pack.json
+  h_6685a7ecaecfc9 2042-2044,2067-2069
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3fef6b4e9f07f95cffec2f4026c4673c916663cf",
+  "prompts": {},
+  "humans": {
+    "h_6685a7ecaecfc9": {
+      "author": "Nely <hartenyan.nely1498@gmail.com>"
+    }
+  }
+}
