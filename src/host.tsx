@@ -24,6 +24,7 @@ type RoundId = "know" | "guess" | "brain" | "buzzer" | "final";
 type State = {
   teams: Team[];
   namesSaved: boolean;
+  buzzLinkOpen: boolean;
   buzzLinked: boolean;
   ordered: boolean;
   shuffling: boolean;
@@ -140,6 +141,7 @@ const fresh = (): State => ({
     score: 0,
   })),
   namesSaved: false,
+  buzzLinkOpen: false,
   buzzLinked: false,
   ordered: false,
   shuffling: false,
@@ -190,6 +192,7 @@ type Action =
   | { type: "replace"; state: State }
   | { type: "team"; index: number; name: string }
   | { type: "save-names" }
+  | { type: "buzz-link-open" }
   | { type: "buzz-link-done" }
   | { type: "order-teams" }
   | { type: "order-tick" }
@@ -492,6 +495,7 @@ function reducer(state: State, action: Action): State {
         ...state,
         teams,
         namesSaved: false,
+        buzzLinkOpen: false,
         buzzLinked: false,
         ordered: false,
         shuffling: false,
@@ -505,6 +509,7 @@ function reducer(state: State, action: Action): State {
       return {
         ...state,
         namesSaved: true,
+        buzzLinkOpen: false,
         buzzLinked: false,
         ordered: false,
         shuffling: false,
@@ -522,11 +527,19 @@ function reducer(state: State, action: Action): State {
         },
       };
     }
+    case "buzz-link-open":
+      if (!state.namesSaved || !state.ordered) return state;
+      return { ...state, buzzLinkOpen: true };
     case "buzz-link-done":
-      return state.namesSaved ? { ...state, buzzLinked: true } : state;
+      if (!state.namesSaved || !state.ordered || !state.buzzLinkOpen) return state;
+      return {
+        ...state,
+        buzzLinked: true,
+        round: "know",
+        know: { ...state.know, opened: true },
+      };
     case "order-teams": {
-      if (!state.namesSaved || !state.buzzLinked || state.ordered || state.shuffling)
-        return state;
+      if (!state.namesSaved || state.ordered || state.shuffling) return state;
       return {
         ...state,
         shuffling: true,
@@ -1011,10 +1024,11 @@ function loadState(): State {
       game,
       knowStarts: loadStarts(),
       namesSaved: Boolean(saved.namesSaved),
-      buzzLinked:
+      buzzLinkOpen:
+        Boolean(saved.buzzLinkOpen) ||
         Boolean(saved.buzzLinked) ||
-        Boolean(saved.know?.opened) ||
-        Boolean(saved.ordered),
+        Boolean(saved.know?.opened),
+      buzzLinked: Boolean(saved.buzzLinked) || Boolean(saved.know?.opened),
       ordered: saved.ordered ?? Boolean(saved.namesSaved),
       shuffling: false,
       shuffleTicks: 0,
@@ -1242,12 +1256,12 @@ export default function Host() {
 
       {!ready && <Setup state={state} dispatch={dispatch} />}
 
-      {ready && !state.buzzLinked && (
-        <BuzzLinkGate room={room} dispatch={dispatch} />
+      {ready && (!state.ordered || !state.buzzLinkOpen) && !state.know.opened && (
+        <OrderGate state={state} dispatch={dispatch} />
       )}
 
-      {ready && state.buzzLinked && !state.know.opened && (
-        <OrderGate state={state} dispatch={dispatch} />
+      {ready && state.ordered && state.buzzLinkOpen && !state.know.opened && (
+        <BuzzLinkGate room={room} dispatch={dispatch} />
       )}
 
       {ready && state.know.opened && (
@@ -1408,7 +1422,7 @@ function BuzzLinkGate({
             className="on"
             onClick={() => dispatch({ type: "buzz-link-done" })}
           >
-            Շարունակել
+            Բացել 1-ին փուլը
           </button>
         </div>
       </div>
@@ -1432,9 +1446,9 @@ function OrderGate({
           <button
             type="button"
             className="on"
-            onClick={() => dispatch({ type: "know-open" })}
+            onClick={() => dispatch({ type: "buzz-link-open" })}
           >
-            Բացել 1-ին փուլը
+            Ցույց տալ QR կոդը
           </button>
         ) : (
           <button
@@ -1823,10 +1837,9 @@ function Guess({
             <button
               type="button"
               className="ghost"
-              disabled={!active}
               onClick={() => dispatch({ type: "guess-wrong" })}
             >
-              Սխալ
+              Սխալ / ոչ ոք չպատասխանեց
             </button>
           </div>
           <Answer text={current.answer} />
@@ -2454,7 +2467,13 @@ function toScreen(state: State): ScreenView {
       ordered: false,
     };
   }
-  if (!state.buzzLinked) {
+  if (!state.ordered) {
+    return { ...base, kind: "lineup", round: "", title: "", ordered: false };
+  }
+  if (!state.buzzLinkOpen) {
+    return { ...base, kind: "lineup", round: "", title: "", ordered: true };
+  }
+  if (!state.know.opened) {
     const room = ensureRoom();
     return {
       ...base,
@@ -2462,15 +2481,9 @@ function toScreen(state: State): ScreenView {
       round: "",
       title: "Թիմերի կոճակը",
       text: "Սկանավորիր QR կոդը",
-      ordered: false,
+      ordered: true,
       buzzLink: { room, url: buzzUrl(room) },
     };
-  }
-  if (!state.ordered) {
-    return { ...base, kind: "lineup", round: "", title: "", ordered: false };
-  }
-  if (!state.know.opened) {
-    return { ...base, kind: "lineup", round: "", title: "", ordered: true };
   }
   if (state.round === "know") {
     const category = pack.know.find(
