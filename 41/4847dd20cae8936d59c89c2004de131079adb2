@@ -1,0 +1,30 @@
+src/data/pack.json
+  h_6685a7ecaecfc9 2036,2061
+src/host.tsx
+  s_941a767c0980b2::t_24aa717def99a8 2361-2380
+  s_941a767c0980b2::t_0e8ceeef051752 2642-2643
+  s_941a767c0980b2::t_ef459a1b890b48 2635-2641,2644-2662
+src/screen.tsx
+  s_941a767c0980b2::t_dd52e6494b41f1 348
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "414847dd20cae8936d59c89c2004de131079adb2",
+  "prompts": {},
+  "humans": {
+    "h_6685a7ecaecfc9": {
+      "author": "Nely <hartenyan.nely1498@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_941a767c0980b2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a8740072-3e5d-4f51-9d2a-bcd5fdea5006",
+        "model": "default"
+      },
+      "human_author": "Nely <hartenyan.nely1498@gmail.com>"
+    }
+  }
+}
