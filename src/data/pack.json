@@ -1457,9 +1457,9 @@
         },
         {
           "points": 4,
-          "image": "/media/guess/p20-0.jpg",
-          "answer": "Սատանան կրում է Պրադա",
-          "id": "films-4-5"
+          "image": "/media/guess/p21-0.jpg",
+          "answer": "Ֆորսաժ",
+          "id": "films-4-7"
         },
         {
           "points": 4,
@@ -1469,15 +1469,15 @@
         },
         {
           "points": 4,
-          "image": "/media/guess/p21-0.jpg",
-          "answer": "Ֆորսաժ",
-          "id": "films-4-7"
-        },
-        {
-          "points": 4,
           "image": "/media/guess/p21-1.jpg",
           "answer": "Ավատար",
           "id": "films-4-8"
+        },
+        {
+          "points": 4,
+          "image": "/media/guess/p20-0.jpg",
+          "answer": "Սատանան կրում է Պրադա",
+          "id": "films-4-5"
         },
         {
           "points": 4,
@@ -1487,9 +1487,9 @@
         },
         {
           "points": 6,
-          "image": "/media/guess/p22-0.jpg",
-          "answer": "Չարլին և շոկոլադի գործարանը",
-          "id": "films-6-10"
+          "image": "/media/guess/p23-0.jpg",
+          "answer": "Interstellar",
+          "id": "films-6-13"
         },
         {
           "points": 6,
@@ -1505,9 +1505,9 @@
         },
         {
           "points": 6,
-          "image": "/media/guess/p23-0.jpg",
-          "answer": "Interstellar",
-          "id": "films-6-13"
+          "image": "/media/guess/p22-0.jpg",
+          "answer": "Չարլին և շոկոլադի գործարանը",
+          "id": "films-6-10"
         },
         {
           "points": 6,
@@ -1559,12 +1559,6 @@
         },
         {
           "points": 4,
-          "image": "/media/guess/city-6.jpg",
-          "answer": "Իտալիա",
-          "id": "cities-4-6"
-        },
-        {
-          "points": 4,
           "image": "/media/guess/city-7.jpg",
           "answer": "ԱՄՆ",
           "id": "cities-4-7"
@@ -1580,6 +1574,12 @@
           "image": "/media/guess/city-9.jpg",
           "answer": "Իտալիա",
           "id": "cities-4-9"
+        },
+        {
+          "points": 4,
+          "image": "/media/guess/city-6.jpg",
+          "answer": "Իտալիա",
+          "id": "cities-4-6"
         },
         {
           "points": 6,
@@ -2203,8 +2203,13 @@
           "image": "/media/buzzer/supper.jpg"
         },
         {
-          "q": "Ո՞ր նկարչի վրձնին է պատկանում «Աստղալից գիշեր» կտավը",
-          "a": "Վինսթենթ վան Գոգ"
+          "q": "Ո՞վ է քանդակել մարմարից պատրաստված այս հայտնի Դավթի արձանը։",
+          "a": "Միքելանջելո",
+          "image": "/media/buzzer/david.jpg"
+        },
+        {
+          "q": "Ո՞ր հայ կոմպոզիտորն է գրել «Սպարտակ» բալետը։",
+          "a": "Արամ Խաչատրյան"
         },
         {
           "q": "Ո՞ր հայ նկարիչն է հայտնի «Հայաստան» և «Իմ հայրենիքը» թեմաներով իր բազմաթիվ ստեղծագործություններով և «Սասունցի Դավիթ» կտավով։",
@@ -2218,10 +2223,7 @@
           "q": "Ո՞վ է «Կարապի լիճը» բալետի երաժշտության հեղինակը։",
           "a": "Պյոտր Չայկովսկի"
         },
-        {
-          "q": "Ո՞ր հայ կոմպոզիտորն է գրել «Սպարտակ» բալետը։",
-          "a": "Արամ Խաչատրյան"
-        },
+
         {
           "q": "Ո՞ր հայտնի երգիչն էր հայտնի որպես «Փոփի արքա»։",
           "a": "Մայքլ Ջեքսոն"

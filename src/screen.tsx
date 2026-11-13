@@ -7,6 +7,7 @@ import { BuzzerArt } from './buzzerArt'
 import { TallyArt } from './tallyArt'
 import { WinnerBoard } from './winnerArt'
 import { Clock, leftSeconds, useNow } from './clock'
+import { qrImageUrl } from './qr'
 
 export type ScreenTeam = { id: string; name: string; score: number }
 
@@ -19,7 +20,7 @@ export type ScreenView = {
   buzzName: string | null
   buzzEndsAt: number | null
   armed: boolean
-  kind: 'idle' | 'wait' | 'lineup' | 'know' | 'guess' | 'brain' | 'buzzer' | 'final'
+  kind: 'idle' | 'wait' | 'lineup' | 'buzzlink' | 'know' | 'guess' | 'brain' | 'buzzer' | 'final'
   title: string
   text: string
   image: string | null
@@ -39,6 +40,12 @@ export type ScreenView = {
   stageScores: { name: string; points: number }[] | null
   winner: string[] | null
   tally: boolean
+  finalKey: {
+    title: string
+    word: string
+    tasks: { prompt: string; answer: string; take: string; letters: string }[]
+  } | null
+  buzzLink: { room: string; url: string } | null
 }
 
 const CHANNEL = 'iq-arena-game'
@@ -252,6 +259,42 @@ export function Screen() {
     )
   }
 
+  if (view.kind === 'buzzlink' && view.buzzLink) {
+    const link = view.buzzLink
+    return (
+      <main className="screen idle-screen">
+        <div className="idle-glow" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+        <header className="lineup-top">
+          <img className="wordmark" src="/brand/wordmark.png" alt="IQ ARENA" />
+        </header>
+        <div className="idle-main buzz-link-screen">
+          <p className="kicker">Buzzer Bash</p>
+          <h1>Սկանավորիր QR կոդը</h1>
+          <p className="lead">Բացիր թիմի buzz կոճակը հեռախոսում։</p>
+          <img
+            className="buzz-qr buzz-qr-lg"
+            src={qrImageUrl(link.url, 420)}
+            alt={`QR ${link.room}`}
+            width={360}
+            height={360}
+          />
+          <p className="buzz-room-code">{link.room}</p>
+          <code className="buzz-link-url">{link.url.replace(/^https?:\/\//, '')}</code>
+        </div>
+        <footer className="site-footer">
+          <p className="organized">
+            <img src="/brand/eca.png" alt="" />
+            Organized by AI Department
+          </p>
+        </footer>
+      </main>
+    )
+  }
+
   if (view.kind === 'lineup') {
     return (
       <main className="screen idle-screen">
@@ -281,7 +324,7 @@ export function Screen() {
     <main className="screen">
       <header className="screen-top">
         <img className="wordmark wordmark-sm" src="/brand/wordmark.png" alt="IQ ARENA" />
-        <p className="round-name">{view.tally || view.winner?.length ? '' : view.round}</p>
+        <p className="round-name">{view.tally || view.winner?.length || view.finalKey ? '' : view.round}</p>
         <span className="screen-balance" />
         <div className="score-line">
           {!view.buzzName && (view.kind === 'guess' ? view.buzzEndsAt : view.timerEndsAt) && view.kind !== 'know' && view.kind !== 'brain' && !finalHold && (
@@ -300,10 +343,33 @@ export function Screen() {
       )}
 
       <section className="screen-body">
-        {view.winner && view.winner.length > 0 && (
+        {view.finalKey && (
+          <div className="final-key">
+            <p className="kicker">{view.finalKey.title}</p>
+            <ol className="final-key-list">
+              {view.finalKey.tasks.map((task, index) => (
+                <li key={`${task.prompt}-${index}`}>
+                  <div>
+                    <p>
+                      <span>{index + 1}.</span> {task.prompt}
+                      {task.letters ? <strong> {task.letters}</strong> : null}
+                    </p>
+                    <b>{task.answer}</b>
+                    <small>{task.take}</small>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <p className="final-key-word">
+              <span>Վերջնական բառ</span>
+              <strong>{view.finalKey.word}</strong>
+            </p>
+          </div>
+        )}
+        {view.winner && view.winner.length > 0 && !view.finalKey && (
           <WinnerBoard teams={view.teams} winners={view.winner} />
         )}
-        {view.tally && !view.winner?.length && (
+        {view.tally && !view.winner?.length && !view.finalKey && (
           <div className="stage-done tally-scene">
             <TallyArt />
             <h1>
