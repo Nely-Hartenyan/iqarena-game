@@ -2138,8 +2138,6 @@ function FinalAudit({
   const [paper, setPaper] = useState<Record<string, string>>({});
   const shown = state.reveal === "winner";
   const keyOn = state.reveal === "final-key";
-  const set =
-    pack.final.find((item) => item.id === state.final.setId) ?? pack.final[0];
   const mismatch = state.teams.some((team) => {
     const raw = paper[team.id];
     if (raw == null || raw.trim() === "") return false;
@@ -2262,23 +2260,6 @@ function FinalAudit({
             : "Ցույց տալ հարցերն ու պատասխանները"}
         </button>
       </div>
-      {keyOn && (
-        <div className="final-key-host">
-          <p className="kicker">{set.title}</p>
-          <ol className="host-tasks">
-            {set.tasks.map((task, index) => (
-              <li key={task.prompt}>
-                <p>
-                  {index + 1}. {task.prompt}{" "}
-                  {task.letters && <b>{task.letters}</b>}
-                </p>
-                <Answer text={`${task.answer} · ${task.take}`} />
-              </li>
-            ))}
-          </ol>
-          <Answer text={set.word} note="Վերջնական բառը" />
-        </div>
-      )}
     </div>
   );
 }
@@ -2377,15 +2358,26 @@ function FinalPlay({
           );
         })}
       </div>
-      <button
-        type="button"
-        disabled={state.final.applied}
-        onClick={() => dispatch({ type: "final-apply" })}
-      >
-        {state.final.applied
-          ? "Միավորներն ավելացված են"
-          : "Ավելացնել միավորները"}
-      </button>
+      <div className="choice-row">
+        <button
+          type="button"
+          className={state.reveal === "final-key" ? "on" : ""}
+          onClick={() => dispatch({ type: "reveal-final-key" })}
+        >
+          {state.reveal === "final-key"
+            ? "Պատասխաններն էկրանին են"
+            : "Ցույց տալ պատասխանները"}
+        </button>
+        <button
+          type="button"
+          disabled={state.final.applied}
+          onClick={() => dispatch({ type: "final-apply" })}
+        >
+          {state.final.applied
+            ? "Միավորներն ավելացված են"
+            : "Ավելացնել միավորները"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -2640,34 +2632,35 @@ function toScreen(state: State): ScreenView {
     };
   }
   const set = pack.final.find((item) => item.id === state.final.setId);
+  if (state.reveal === "final-key") {
+    return {
+      ...base,
+      kind: "final",
+      done: true,
+      tally: false,
+      winner: null,
+      round: "",
+      title: "",
+      text: "",
+      timerEndsAt: null,
+      tasks: null,
+      hints: null,
+      sample: false,
+      finalKey: set
+        ? {
+            title: set.title,
+            word: set.word,
+            tasks: set.tasks.map((task) => ({
+              prompt: task.prompt,
+              answer: task.answer,
+              take: task.take,
+              letters: task.letters,
+            })),
+          }
+        : null,
+    };
+  }
   if (state.final.applied) {
-    if (state.reveal === "final-key") {
-      return {
-        ...base,
-        kind: "final",
-        done: true,
-        tally: false,
-        winner: null,
-        title: set?.title ?? "",
-        text: "",
-        timerEndsAt: null,
-        tasks: null,
-        hints: null,
-        sample: false,
-        finalKey: set
-          ? {
-              title: set.title,
-              word: set.word,
-              tasks: set.tasks.map((task) => ({
-                prompt: task.prompt,
-                answer: task.answer,
-                take: task.take,
-                letters: task.letters,
-              })),
-            }
-          : null,
-      };
-    }
     if (state.reveal === "winner") {
       return {
         ...base,

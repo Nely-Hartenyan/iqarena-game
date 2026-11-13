@@ -345,7 +345,7 @@ export function Screen() {
       <section className="screen-body">
         {view.finalKey && (
           <div className="final-key">
-            <p className="kicker">{view.finalKey.title}</p>
+            <p className="kicker">Պատասխաններ</p>
             <ol className="final-key-list">
               {view.finalKey.tasks.map((task, index) => (
                 <li key={`${task.prompt}-${index}`}>
